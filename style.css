@@ -323,15 +323,22 @@ body {
 }
 
 /* Custom Marker */
-.plane-marker {
+.plane-marker-container {
     width: 24px;
     height: 24px;
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%2300f0ff" stroke="%23ffffff" stroke-width="1"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>');
-    background-size: cover;
     cursor: pointer;
-    transition: transform 0.2s ease;
 }
 
-.plane-marker:hover {
-    transform: scale(1.2);
+.plane-marker {
+    width: 100%;
+    height: 100%;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%2300f0ff" stroke="%23ffffff" stroke-width="1"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>');
+    background-size: cover;
+    transform: rotate(var(--heading, 0deg)) scale(var(--scale, 1));
+    --scale: 1;
+    transition: transform 0.1s ease-out;
+}
+
+.plane-marker-container:hover .plane-marker {
+    --scale: 1.2;
 }
