@@ -31,7 +31,7 @@
                 <input type="text" id="routeSearch" placeholder="Search route (e.g. Calgary to Italy)..." />
                 <button id="searchBtn">Search</button>
             </div>
-            <div class="toggle-container" style="display: flex; align-items: center; gap: 8px; border-left: 1px solid var(--glass-border); padding-left: 24px; margin-left: 24px;">
+            <div class="toggle-container" style="display: flex; align-items: center; gap: 8px; border-left: 1px solid var(--glass-border); padding-left: 24px;">
                 <label class="switch" style="position: relative; display: inline-block; width: 40px; height: 20px;">
                     <input type="checkbox" id="liveTrafficToggle" style="opacity: 0; width: 0; height: 0;">
                     <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .4s; border-radius: 20px; border: 1px solid var(--glass-border);"></span>
@@ -42,9 +42,9 @@
                 <span class="pulse" id="pulseIndicator" style="background-color: #8b9bb4; box-shadow: none;"></span>
                 <span id="statusText">System Standby</span>
             </div>
-            <button id="tripsBtn" class="header-btn">
+            <button id="tripsBtn" class="header-btn" style="margin-left: 0;">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-                Trip Packages
+                Explore
             </button>
         </header>
 
@@ -63,37 +63,42 @@
             </div>
         </aside>
 
-        <!-- Trip Planning Sidebar -->
-        <aside class="trip-panel glass-panel" id="tripPanel">
-            <div class="panel-header">
-                <h2>Featured Trips</h2>
-                <button id="closeTripPanel" class="icon-btn">×</button>
-            </div>
-            
-            <div class="booking-form-container">
-                <div class="form-row">
-                    <input type="text" id="bookOrigin" placeholder="From (e.g. JFK)">
-                    <input type="text" id="bookDest" placeholder="To (e.g. LHR)">
+        <!-- Explore Destinations Modal -->
+        <div id="exploreModal" class="modal-overlay hidden">
+            <div class="explore-container glass-panel">
+                <button id="closeExploreModal" class="icon-btn" style="position: absolute; top: 24px; right: 24px; z-index: 10;">×</button>
+                
+                <div class="explore-header">
+                    <h2>Explore The World</h2>
+                    <p>Discover packages with real-time flight tracking included.</p>
                 </div>
-                <div class="form-row">
-                    <input type="date" id="bookDepart">
-                    <input type="date" id="bookReturn">
+                
+                <div class="booking-form-container" style="flex-direction: row; align-items: center; justify-content: center; margin: 24px 32px; background: rgba(0,0,0,0.2);">
+                    <div class="form-row" style="flex: 1;">
+                        <input type="text" id="bookOrigin" placeholder="From (e.g. Calgary)">
+                        <input type="text" id="bookDest" placeholder="To (e.g. Vegas)">
+                    </div>
+                    <div class="form-row" style="flex: 1;">
+                        <input type="date" id="bookDepart">
+                        <input type="date" id="bookReturn">
+                    </div>
+                    <div class="form-row" style="flex: 1;">
+                        <select id="bookClass" style="width: 50%;">
+                            <option value="economy">Economy</option>
+                            <option value="premium">Premium Economy</option>
+                            <option value="business">Business Class</option>
+                            <option value="first">First Class</option>
+                        </select>
+                        <input type="number" id="bookPassengers" value="2" min="1" max="9" style="width: 50%;" title="Travelers">
+                    </div>
+                    <button id="bookSearchBtn" style="margin-top: 0; height: 100%; white-space: nowrap;">Search Packages</button>
                 </div>
-                <div class="form-row">
-                    <select id="bookClass">
-                        <option value="economy">Economy</option>
-                        <option value="premium">Premium Economy</option>
-                        <option value="business">Business Class</option>
-                        <option value="first">First Class</option>
-                    </select>
-                </div>
-                <button id="bookSearchBtn">Search Packages</button>
-            </div>
 
-            <div class="trip-info-container" id="tripInfoContent">
-                <!-- Trip cards will be populated here -->
+                <div class="explore-grid" id="exploreGridContent">
+                    <!-- Featured Destinations will be populated here -->
+                </div>
             </div>
-        </aside>
+        </div>
 
         <!-- Loading Overlay -->
         <div id="loading" class="loading-overlay">
@@ -101,9 +106,41 @@
             <p>Initializing Airspace...</p>
         </div>
 
-        <!-- Booking Modal -->
-        <div id="bookingModal" class="modal-overlay hidden">
-            <div class="booking-modal glass-panel">
+        <!-- Property Details Intermediate Modal -->
+        <div id="propertyDetailsModal" class="modal-overlay hidden" style="z-index: 100;">
+            <div class="booking-container glass-panel" style="width: 800px; max-width: 95vw; padding: 0; overflow: hidden; display: flex; flex-direction: column;">
+                <button id="closePropertyModalBtn" class="icon-btn" style="position: absolute; top: 16px; right: 16px; z-index: 10; background: rgba(0,0,0,0.5); border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; color: white;">×</button>
+                <div id="propImageHero" style="height: 300px; background-size: cover; background-position: center; position: relative;">
+                    <div style="position: absolute; bottom: 0; left: 0; width: 100%; padding: 40px 24px 24px; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);">
+                        <h2 id="propTitle" style="font-size: 32px; font-family: 'Space Grotesk', sans-serif; color: white; margin-bottom: 8px;">Hotel Name</h2>
+                        <div id="propSubtitle" style="color: rgba(255,255,255,0.8); font-size: 14px;">Location • Stars</div>
+                    </div>
+                </div>
+                <div style="padding: 32px; display: flex; gap: 32px; overflow-y: auto;">
+                    <div style="flex: 2;">
+                        <h3 style="color: var(--primary-color); margin-bottom: 16px; font-size: 20px;">About this property</h3>
+                        <p style="color: var(--text-muted); line-height: 1.6; margin-bottom: 24px;">Experience world-class luxury at this stunning property. Enjoy breathtaking views, premium dining options, and exceptional service. Perfect for your upcoming getaway.</p>
+                        
+                        <h4 style="margin-bottom: 12px; font-size: 16px;">Top Amenities</h4>
+                        <div id="propAmenities" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px;">
+                            <!-- Filled dynamically -->
+                        </div>
+                    </div>
+                    <div style="flex: 1; background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; justify-content: center;">
+                        <div style="text-align: center; margin-bottom: 24px;">
+                            <div style="color: var(--text-muted); font-size: 14px; margin-bottom: 8px;">Total Package Price</div>
+                            <div id="propPrice" style="font-size: 32px; font-weight: bold; color: var(--primary-color); font-family: 'Space Grotesk', sans-serif;">$0</div>
+                            <div style="color: var(--text-muted); font-size: 12px; margin-top: 8px;">Includes Flight + Hotel + Taxes</div>
+                        </div>
+                        <button id="propContinueBtn" style="background: var(--primary-color); color: var(--bg-dark); border: none; border-radius: 8px; padding: 16px; font-weight: bold; font-size: 16px; cursor: pointer; transition: all 0.2s;">Continue to Booking</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Provider Booking Modal -->
+        <div id="bookingModal" class="modal-overlay hidden" style="z-index: 101;">
+            <div class="booking-container glass-panel">
                 <button id="closeBookingModal" class="icon-btn" style="position: absolute; top: 16px; right: 16px;">×</button>
                 <div class="booking-header">
                     <h2 id="bookingRoute">Route</h2>
@@ -112,12 +149,55 @@
                 <div class="booking-stats" id="bookingStats">
                     <!-- Stats populated via JS -->
                 </div>
-                <div class="booking-actions">
-                    <a href="https://www.expedia.com" class="book-btn" target="_blank" id="bookExpediaBtn">Book on Expedia</a>
-                    <a href="https://www.google.com/flights" class="book-btn" target="_blank" id="bookGoogleBtn">Book on Google Flights</a>
+            </div>
+        </div>
+
+        <!-- Package Results Modal -->
+        <div id="packageResultsModal" class="modal-overlay hidden">
+            <div class="package-results-container glass-panel">
+                <button id="closePackageResults" class="icon-btn" style="position: absolute; top: 16px; right: 16px; z-index: 10;">×</button>
+                
+                <div class="package-results-header">
+                    <h2 id="packageResultsTitle">Search Results</h2>
+                    <p id="packageResultsSubtitle">Select a package to continue</p>
+                </div>
+                
+                <div class="package-results-body">
+                    <!-- Left Sidebar Filters -->
+                    <div class="package-filters">
+                        <h3>Filter by</h3>
+                        <div class="filter-section">
+                            <h4>Property Class</h4>
+                            <label><input type="checkbox" value="5" class="filter-stars" checked> 5 Star</label>
+                            <label><input type="checkbox" value="4" class="filter-stars" checked> 4 Star</label>
+                            <label><input type="checkbox" value="3" class="filter-stars" checked> 3 Star</label>
+                        </div>
+                        <div class="filter-section">
+                            <h4>Amenities</h4>
+                            <label><input type="checkbox" value="pool" class="filter-amenities"> Pool</label>
+                            <label><input type="checkbox" value="wifi" class="filter-amenities"> Free WiFi</label>
+                            <label><input type="checkbox" value="view" class="filter-amenities"> Ocean View</label>
+                            <label><input type="checkbox" value="allinclusive" class="filter-amenities"> All Inclusive</label>
+                            <label><input type="checkbox" value="spa" class="filter-amenities"> Spa & Wellness</label>
+                            <label><input type="checkbox" value="gym" class="filter-amenities"> Fitness Center</label>
+                            <label><input type="checkbox" value="bar" class="filter-amenities"> Rooftop Bar</label>
+                            <label><input type="checkbox" value="restaurant" class="filter-amenities"> Fine Dining</label>
+                            <label><input type="checkbox" value="beachfront" class="filter-amenities"> Beachfront</label>
+                            <label><input type="checkbox" value="casino" class="filter-amenities"> Casino</label>
+                            <label><input type="checkbox" value="parking" class="filter-amenities"> Free Parking</label>
+                            <label><input type="checkbox" value="breakfast" class="filter-amenities"> Breakfast Included</label>
+                        </div>
+                        <button id="clearFiltersBtn" style="width:100%; margin-top:16px; background: rgba(255,255,255,0.1); border:1px solid var(--glass-border); color: var(--text-main); padding: 8px; border-radius: 8px; cursor: pointer;">Clear Filters</button>
+                    </div>
+                    
+                    <!-- Right Side Results List -->
+                    <div class="package-list" id="packageListContent">
+                        <!-- Populated by JS -->
+                    </div>
                 </div>
             </div>
         </div>
+
     </div>
 
 <style>
