@@ -54,10 +54,13 @@ body {
     position: absolute;
     top: 24px;
     left: 24px;
+    right: 24px;
     z-index: 10;
     display: flex;
     align-items: center;
-    gap: 32px;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
     padding: 16px 28px;
     border-radius: 20px;
     background: var(--glass-bg);
@@ -342,3 +345,417 @@ body {
 .plane-marker-container:hover .plane-marker {
     --scale: 1.2;
 }
+
+/* Header Button */
+.header-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Outfit', sans-serif;
+    transition: all 0.2s;
+    margin-left: 24px;
+}
+
+.header-btn:hover {
+    background: rgba(0, 240, 255, 0.1);
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.4);
+    transform: translateY(-1px);
+}
+
+/* Trip Panel */
+.trip-panel {
+    position: absolute;
+    top: 100px;
+    right: 24px;
+    bottom: 24px;
+    z-index: 10;
+    width: 380px;
+    border-radius: 20px;
+    padding: 24px;
+    transform: translateX(120%);
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    flex-direction: column;
+}
+
+.trip-panel.active {
+    transform: translateX(0);
+}
+
+.trip-info-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 8px;
+    min-height: 0;
+}
+
+.trip-info-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.trip-info-container::-webkit-scrollbar-thumb {
+    background: var(--glass-border);
+    border-radius: 4px;
+}
+
+/* Trip Card */
+.trip-card {
+    background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.trip-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--primary-color);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.trip-card:hover {
+    background: linear-gradient(135deg, rgba(0,240,255,0.05), rgba(112,0,255,0.05));
+    border-color: rgba(0,240,255,0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+.trip-card:hover::before {
+    opacity: 1;
+}
+
+.trip-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.trip-route {
+    font-size: 18px;
+    font-weight: 600;
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+.trip-duration {
+    font-size: 12px;
+    color: var(--text-muted);
+    background: rgba(255,255,255,0.05);
+    padding: 4px 8px;
+    border-radius: 12px;
+}
+
+.trip-prices {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.price-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.price-row span:last-child {
+    font-family: 'Space Grotesk', sans-serif;
+    color: var(--text-main);
+}
+
+.price-total {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--glass-border);
+    display: flex;
+    justify-content: space-between;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.price-total span:last-child {
+    color: var(--accent-color);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 18px;
+}
+
+/* Multi-Site Providers */
+.provider-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.provider-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0,0,0,0.2);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    border: 1px solid transparent;
+}
+
+.provider-item.best-deal {
+    border-color: rgba(0, 240, 255, 0.5);
+    background: rgba(0, 240, 255, 0.05);
+}
+
+.provider-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.best-deal-badge {
+    font-size: 10px;
+    background: var(--primary-color);
+    color: var(--bg-dark);
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 800;
+}
+
+/* Booking Modal Expanded */
+.booking-modal {
+    width: 480px;
+    max-width: 90vw;
+    padding: 32px;
+    border-radius: 24px;
+    position: relative;
+    transform: translateY(0);
+    transition: transform 0.3s ease;
+}
+
+.flight-plan-details {
+    background: rgba(0,0,0,0.3);
+    padding: 16px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.flight-plan-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.flight-plan-row:last-child {
+    margin-bottom: 0;
+}
+
+.flight-plan-row span:last-child {
+    color: var(--text-main);
+    font-weight: 600;
+}
+.booking-form-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid var(--glass-border);
+}
+
+.form-row {
+    display: flex;
+    gap: 8px;
+}
+
+.booking-form-container input, .booking-form-container select {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 10px;
+    color: var(--text-main);
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    outline: none;
+    transition: all 0.2s;
+    width: 100%;
+}
+
+.booking-form-container input:focus, .booking-form-container select:focus {
+    border-color: var(--primary-color);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.booking-form-container input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+}
+
+.booking-form-container select option {
+    background: var(--bg-dark);
+    color: var(--text-main);
+}
+
+#bookSearchBtn {
+    background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 4px;
+    font-family: 'Outfit', sans-serif;
+}
+
+#bookSearchBtn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+}
+
+.ai-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 32px 0;
+    color: var(--text-muted);
+}
+
+.ai-loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(112, 0, 255, 0.2);
+    border-radius: 50%;
+    border-top-color: var(--secondary-color);
+    animation: spin 1s ease-in-out infinite;
+}
+
+/* Booking Modal */
+.app-header {
+    background: rgba(10, 15, 25, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--glass-border);
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 10;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.modal-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.booking-modal {
+    width: 400px;
+    padding: 32px;
+    border-radius: 24px;
+    position: relative;
+    transform: translateY(0);
+    transition: transform 0.3s ease;
+}
+
+.modal-overlay.hidden .booking-modal {
+    transform: translateY(20px);
+}
+
+.booking-header {
+    margin-bottom: 24px;
+}
+
+.booking-header h2 {
+    font-size: 24px;
+    font-family: 'Space Grotesk', sans-serif;
+    color: var(--primary-color);
+    margin-bottom: 8px;
+}
+
+.booking-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 32px;
+    background: rgba(255,255,255,0.03);
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+}
+
+.booking-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.book-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 12px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 600;
+    font-family: 'Outfit', sans-serif;
+    transition: all 0.2s;
+}
+
+#bookExpediaBtn {
+    background: #00005e; 
+    color: white;
+    border: 1px solid #1414b8;
+}
+#bookExpediaBtn:hover { background: #1414b8; }
+
+#bookGoogleBtn {
+    background: rgba(255,255,255,0.1);
+    color: white;
+    border: 1px solid var(--glass-border);
+}
+#bookGoogleBtn:hover { background: rgba(255,255,255,0.2); }
+
+
+

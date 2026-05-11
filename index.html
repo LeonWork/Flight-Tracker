@@ -42,6 +42,10 @@
                 <span class="pulse" id="pulseIndicator" style="background-color: #8b9bb4; box-shadow: none;"></span>
                 <span id="statusText">System Standby</span>
             </div>
+            <button id="tripsBtn" class="header-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                Trip Packages
+            </button>
         </header>
 
         <!-- Sidebar for Flight Details -->
@@ -59,10 +63,60 @@
             </div>
         </aside>
 
+        <!-- Trip Planning Sidebar -->
+        <aside class="trip-panel glass-panel" id="tripPanel">
+            <div class="panel-header">
+                <h2>Featured Trips</h2>
+                <button id="closeTripPanel" class="icon-btn">×</button>
+            </div>
+            
+            <div class="booking-form-container">
+                <div class="form-row">
+                    <input type="text" id="bookOrigin" placeholder="From (e.g. JFK)">
+                    <input type="text" id="bookDest" placeholder="To (e.g. LHR)">
+                </div>
+                <div class="form-row">
+                    <input type="date" id="bookDepart">
+                    <input type="date" id="bookReturn">
+                </div>
+                <div class="form-row">
+                    <select id="bookClass">
+                        <option value="economy">Economy</option>
+                        <option value="premium">Premium Economy</option>
+                        <option value="business">Business Class</option>
+                        <option value="first">First Class</option>
+                    </select>
+                </div>
+                <button id="bookSearchBtn">Search Packages</button>
+            </div>
+
+            <div class="trip-info-container" id="tripInfoContent">
+                <!-- Trip cards will be populated here -->
+            </div>
+        </aside>
+
         <!-- Loading Overlay -->
         <div id="loading" class="loading-overlay">
             <div class="spinner"></div>
             <p>Initializing Airspace...</p>
+        </div>
+
+        <!-- Booking Modal -->
+        <div id="bookingModal" class="modal-overlay hidden">
+            <div class="booking-modal glass-panel">
+                <button id="closeBookingModal" class="icon-btn" style="position: absolute; top: 16px; right: 16px;">×</button>
+                <div class="booking-header">
+                    <h2 id="bookingRoute">Route</h2>
+                    <span id="bookingDuration" class="trip-duration">Duration</span>
+                </div>
+                <div class="booking-stats" id="bookingStats">
+                    <!-- Stats populated via JS -->
+                </div>
+                <div class="booking-actions">
+                    <a href="https://www.expedia.com" class="book-btn" target="_blank" id="bookExpediaBtn">Book on Expedia</a>
+                    <a href="https://www.google.com/flights" class="book-btn" target="_blank" id="bookGoogleBtn">Book on Google Flights</a>
+                </div>
+            </div>
         </div>
     </div>
 

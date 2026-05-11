@@ -43,10 +43,39 @@ function getCurvePosition(start, end, t) {
     return [lng, lat];
 }
 
-// Initialize MapLibre Map (Using Carto Dark Matter style for a premium dark look)
+// Initialize MapLibre Map (Using Satellite imagery with custom dark overlay)
 const map = new maplibregl.Map({
     container: 'map',
-    style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+    style: {
+        version: 8,
+        glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
+        sources: {
+            'satellite': {
+                type: 'raster',
+                tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+                tileSize: 256
+            }
+        },
+        layers: [
+            {
+                id: 'satellite-layer',
+                type: 'raster',
+                source: 'satellite',
+                paint: {
+                    'raster-saturation': -0.2,
+                    'raster-contrast': 0.1
+                }
+            },
+            {
+                id: 'dark-overlay',
+                type: 'background',
+                paint: {
+                    'background-color': '#020d1a',
+                    'background-opacity': 0.65
+                }
+            }
+        ]
+    },
     center: [0, 20], // Centered globally
     zoom: 2, // Fully zoomed out initially
     pitch: 0, 
@@ -82,23 +111,7 @@ map.on('dragstart', () => {
     }
 });
 
-// Make Map visually pleasing with dynamic styling for deep blue oceans and sleek landmasses
-map.on('style.load', () => {
-    const layers = map.getStyle().layers;
-    layers.forEach(layer => {
-        // Deep blue ocean/background
-        if (layer.type === 'background') {
-            map.setPaintProperty(layer.id, 'background-color', '#020d1a');
-        }
-        if (layer.id.toLowerCase().includes('water') && layer.type === 'fill') {
-            map.setPaintProperty(layer.id, 'fill-color', '#004b87'); // Brighter, rich blue ocean
-        }
-        // Slate/dark teal landmasses
-        if ((layer.id.toLowerCase().includes('land') || layer.id.toLowerCase().includes('earth') || layer.id.toLowerCase().includes('base')) && layer.type === 'fill') {
-            map.setPaintProperty(layer.id, 'fill-color', '#131e32'); // Sleek, appealing land color
-        }
-    });
-});
+// Map visual styling handled in style definition directly now
 
 // Map control
 map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
@@ -287,14 +300,12 @@ function animateFlights() {
             const t = f.progress / 100;
             const pos = getCurvePosition(f.originCoord, f.destCoord, t);
             
-            // Calculate exact heading along the curve
+            // Calculate exact heading along the curve using Mercator Coordinates for true visual alignment
             const posNext = getCurvePosition(f.originCoord, f.destCoord, Math.min(1, t + 0.001));
-            let dx = posNext[0] - pos[0];
-            if (dx > 180) dx -= 360;
-            else if (dx < -180) dx += 360;
-            let dy = posNext[1] - pos[1];
+            const p1 = maplibregl.MercatorCoordinate.fromLngLat(pos);
+            const p2 = maplibregl.MercatorCoordinate.fromLngLat(posNext);
             
-            let heading = Math.atan2(dx, dy) * (180 / Math.PI);
+            let heading = Math.atan2(p2.x - p1.x, p1.y - p2.y) * (180 / Math.PI);
             if (heading < 0) heading += 360;
 
             f.lng = pos[0];
@@ -310,13 +321,10 @@ function animateFlights() {
     if (selectedFlightId && followMode !== 'none' && map.getLayer('3d-model') && !isTransitioning && !isUserZooming) {
         const sf = dataToAnimate.find(f => f.id === selectedFlightId);
         if (sf) {
-            // We use easeTo with 0 duration for smooth tracking without jitter
-            // Add padding so the plane stays visually centered, avoiding the left panel
-            const paddingLeft = window.innerWidth > 1000 ? 350 : (window.innerWidth > 768 ? 250 : 0);
+            // We use easeTo with 0 duration for smooth tracking without jitter.
+            // We omit bearing and pitch so the user can freely rotate/zoom the camera while tracking!
             map.easeTo({
                 center: [sf.lng, sf.lat],
-                bearing: sf.heading,
-                padding: { left: paddingLeft, right: 0, top: 0, bottom: 0 },
                 duration: 0
             });
         }
@@ -372,7 +380,7 @@ function selectFlight(id, data) {
     flightPanel.classList.add('active');
     
     // Create or update 3D model layer
-    setup3DModel([currentLng, currentLat], flightObj ? flightObj.alt : data.alt, flightObj ? flightObj.heading : data.heading);
+    setup3DModel([currentLng, currentLat], flightObj ? flightObj.alt : data.alt, flightObj ? flightObj.heading : data.heading, flightObj || data);
 
     // Setup follow button listeners
     const mapBtn = document.getElementById('followMapBtn');
@@ -413,7 +421,7 @@ function selectFlight(id, data) {
         } else if (followMode === '3d') {
             map.flyTo({
                 center: [liveLng, liveLat],
-                zoom: 16,
+                zoom: 14,
                 pitch: 80,
                 bearing: liveHdg,
                 speed: 1.5
@@ -641,7 +649,7 @@ closePanelBtn.addEventListener('click', () => {
     }
     if (map.getLayer('route-points-circle')) {
         map.removeLayer('route-points-circle');
-        map.removeLayer('route-points-label');
+        if (map.getLayer('route-points-label')) map.removeLayer('route-points-label');
         map.removeSource('route-points');
     }
     
@@ -660,6 +668,14 @@ closePanelBtn.addEventListener('click', () => {
         speed: 1.2
     });
     map.once('moveend', () => isTransitioning = false);
+
+    // If we were in mock mode (route search), clear it out so it stops tracking
+    if (isMockMode) {
+        isMockMode = false;
+        routeSearch.value = "";
+        statusText.innerText = "System Active";
+        fetchFlights();
+    }
 });
 
 liveTrafficToggle.addEventListener('change', (e) => {
@@ -728,6 +744,14 @@ function handleSearch() {
         pitch: 0,
         bearing: 0
     });
+
+    // Auto-select the first flight so it pops up and tracks immediately
+    setTimeout(() => {
+        const firstFlightMarker = document.querySelector('.flight-marker');
+        if (firstFlightMarker) {
+            firstFlightMarker.click();
+        }
+    }, 600);
 }
 
 // --- 3D Model Implementation via Three.js Custom Layer ---
@@ -743,10 +767,35 @@ let modelTransform = {
     scale: 1
 };
 
-function setup3DModel(lngLat, altitude, heading) {
+let planeMaterials = { primary: null, accent: null };
+
+function setup3DModel(lngLat, altitude, heading, flightData) {
     update3DModelPosition(lngLat, altitude, heading);
 
-    if (map.getLayer('3d-model')) return; // Already added
+    // Calculate colors
+    let primaryColor = 0xdddddd;
+    let accentCol = 0x00f0ff;
+    if (flightData) {
+        const callsign = flightData.callsign || "";
+        if (callsign.startsWith("WJA")) { primaryColor = 0x004c4c; accentCol = 0x00e6e6; }
+        else if (callsign.startsWith("ACA")) { primaryColor = 0xffffff; accentCol = 0xcc0000; }
+        else if (callsign.startsWith("RYR")) { primaryColor = 0x003399; accentCol = 0xf1c40f; }
+        else if (callsign.startsWith("UAL")) { primaryColor = 0x003366; accentCol = 0xffcc00; }
+        else {
+            let hash = 0;
+            for (let i = 0; i < callsign.length; i++) hash = callsign.charCodeAt(i) + ((hash << 5) - hash);
+            const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+            primaryColor = parseInt("0x" + "00000".substring(0, 6 - c.length) + c);
+            accentCol = 0xffffff - primaryColor;
+        }
+    }
+
+    if (map.getLayer('3d-model')) {
+        // Update existing model colors
+        if (planeMaterials.primary) planeMaterials.primary.color.setHex(primaryColor);
+        if (planeMaterials.accent) planeMaterials.accent.color.setHex(accentCol);
+        return; 
+    }
 
     const customLayer = {
         id: '3d-model',
@@ -775,7 +824,7 @@ function setup3DModel(lngLat, altitude, heading) {
 
             // Use MeshPhongMaterial instead of Physical to guarantee compatibility with MapLibre's WebGL context
             const metalMaterial = new THREE.MeshPhongMaterial({ 
-                color: 0xdddddd, 
+                color: primaryColor, 
                 specular: 0x555555,
                 shininess: 50
             });
@@ -789,10 +838,13 @@ function setup3DModel(lngLat, altitude, heading) {
             });
             
             const accentMaterial = new THREE.MeshPhongMaterial({ 
-                color: 0x00f0ff,
+                color: accentCol,
                 specular: 0xffffff,
                 shininess: 100
             });
+
+            planeMaterials.primary = metalMaterial;
+            planeMaterials.accent = accentMaterial;
 
             // 1. Aerodynamic Fuselage
             const fuselageGeom = new THREE.CylinderGeometry(1.5, 1.8, 24, 32);
@@ -958,4 +1010,248 @@ function update3DModelPosition(lngLat, altitude, heading) {
     // Rotate to match heading. Three.js rotation requires some math to match map bearing
     modelTransform.rotateZ = (-heading * Math.PI) / 180;
     modelTransform.scale = modelScale;
+}
+
+// --- Trip Planning Logic ---
+const tripsBtn = document.getElementById('tripsBtn');
+const tripPanel = document.getElementById('tripPanel');
+const closeTripPanelBtn = document.getElementById('closeTripPanel');
+const tripInfoContent = document.getElementById('tripInfoContent');
+
+const featuredTrips = [
+    { route: "Calgary to Italy", duration: "9h 45m", flightPrice: "$850", hotelPrice: "$1,200", total: "$2,050" },
+    { route: "JFK to Paris", duration: "7h 20m", flightPrice: "$620", hotelPrice: "$950", total: "$1,570" },
+    { route: "Tokyo to Sydney", duration: "9h 30m", flightPrice: "$980", hotelPrice: "$1,500", total: "$2,480" },
+    { route: "London to Dubai", duration: "7h 00m", flightPrice: "$540", hotelPrice: "$1,100", total: "$1,640" }
+];
+
+function renderTrips() {
+    tripInfoContent.innerHTML = '';
+    featuredTrips.forEach(trip => {
+        const card = document.createElement('div');
+        card.className = 'trip-card';
+        card.innerHTML = `
+            <div class="trip-header">
+                <div class="trip-route">${trip.route}</div>
+                <div class="trip-duration">${trip.duration}</div>
+            </div>
+            <div class="trip-prices">
+                <div class="price-row">
+                    <span>Flight (Round Trip)</span>
+                    <span>${trip.flightPrice}</span>
+                </div>
+                <div class="price-row">
+                    <span>Hotel (7 Nights)</span>
+                    <span>${trip.hotelPrice}</span>
+                </div>
+                <div class="price-total">
+                    <span>Total Package</span>
+                    <span>${trip.total}</span>
+                </div>
+            </div>
+        `;
+        
+        card.addEventListener('click', () => {
+            // Track flight in background
+            tripPanel.classList.remove('active');
+            
+            // Set search input
+            routeSearch.value = trip.route;
+            
+            // Trigger search
+            handleSearch();
+            
+            // Open booking modal
+            openBookingModal(trip);
+        });
+        
+        tripInfoContent.appendChild(card);
+    });
+}
+
+tripsBtn.addEventListener('click', () => {
+    renderTrips();
+    tripPanel.classList.add('active');
+    // Hide flight panel if open
+    flightPanel.classList.remove('active');
+});
+
+closeTripPanelBtn.addEventListener('click', () => {
+    tripPanel.classList.remove('active');
+});
+
+// Booking Form Logic
+const bookSearchBtn = document.getElementById('bookSearchBtn');
+const bookOrigin = document.getElementById('bookOrigin');
+const bookDest = document.getElementById('bookDest');
+const bookDepart = document.getElementById('bookDepart');
+const bookReturn = document.getElementById('bookReturn');
+const bookClass = document.getElementById('bookClass');
+
+bookSearchBtn.addEventListener('click', () => {
+    const origin = bookOrigin.value.trim() || "JFK";
+    const dest = bookDest.value.trim() || "LHR";
+    const cabin = bookClass.value;
+    
+    // Dynamic Date Math
+    let nights = 7;
+    if (bookDepart.value && bookReturn.value) {
+        const d1 = new Date(bookDepart.value);
+        const d2 = new Date(bookReturn.value);
+        const diffTime = Math.abs(d2 - d1);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+        if (diffDays > 0) nights = diffDays;
+    }
+
+    let multiplier = 1;
+    let className = "Economy";
+    if (cabin === 'premium') { multiplier = 1.5; className = "Premium Economy"; }
+    if (cabin === 'business') { multiplier = 3.2; className = "Business Class"; }
+    if (cabin === 'first') { multiplier = 5.5; className = "First Class"; }
+
+    // Show loading state
+    tripInfoContent.innerHTML = `
+        <div class="ai-loading">
+            <div class="ai-loading-spinner"></div>
+            <p>Searching providers for best deals...</p>
+        </div>
+    `;
+
+    setTimeout(() => {
+        const aiTrips = [];
+        
+        for (let i = 0; i < 2; i++) {
+            const baseFlight = Math.floor((300 + Math.random() * 200) * multiplier);
+            const baseHotel = Math.floor((100 * nights) + Math.random() * 500);
+            
+            const providers = [
+                { name: 'Expedia', price: baseFlight + baseHotel + Math.floor(Math.random() * 80 - 20) },
+                { name: 'Google Flights', price: baseFlight + baseHotel + Math.floor(Math.random() * 80 - 20) },
+                { name: 'Kayak', price: baseFlight + baseHotel + Math.floor(Math.random() * 80 - 20) },
+                { name: 'Skyscanner', price: baseFlight + baseHotel + Math.floor(Math.random() * 80 - 20) }
+            ];
+            
+            providers.sort((a,b) => a.price - b.price);
+            providers[0].best = true;
+            
+            const flightCode = ['BA12', 'AA404', 'AF22', 'EK4'][Math.floor(Math.random() * 4)];
+            const aircraft = ['Boeing 777-300ER', 'Airbus A350-900', 'Boeing 787 Dreamliner'][Math.floor(Math.random() * 3)];
+            
+            aiTrips.push({
+                route: `${origin.toUpperCase()} to ${dest.toUpperCase()}${i===1 ? ' (Express)' : ''}`,
+                duration: "5h 20m",
+                className: className,
+                nights: nights,
+                providers: providers,
+                bestPrice: providers[0].price,
+                flightCode: flightCode,
+                aircraft: aircraft
+            });
+        }
+
+        // Render Multi-site Deals
+        tripInfoContent.innerHTML = `<h3 style="font-size: 14px; color: var(--primary-color); margin-bottom: 8px;">Available Deals (${className})</h3>`;
+        
+        aiTrips.forEach(trip => {
+            const card = document.createElement('div');
+            card.className = 'trip-card';
+            
+            let providersHtml = '<div class="provider-list">';
+            trip.providers.forEach(p => {
+                providersHtml += `
+                    <div class="provider-item ${p.best ? 'best-deal' : ''}">
+                        <div class="provider-name">
+                            ${p.name} ${p.best ? '<span class="best-deal-badge">Best Deal</span>' : ''}
+                        </div>
+                        <div class="provider-price" style="font-family: 'Space Grotesk', sans-serif; font-weight: 600; color: ${p.best ? 'var(--primary-color)' : 'var(--text-main)'};">
+                            $${p.price.toLocaleString()}
+                        </div>
+                    </div>
+                `;
+            });
+            providersHtml += '</div>';
+
+            card.innerHTML = `
+                <div class="trip-header">
+                    <div class="trip-route">${trip.route}</div>
+                    <div class="trip-duration">${trip.duration}</div>
+                </div>
+                <div class="trip-prices">
+                    <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">
+                        Flight (${trip.className}) + Hotel (${trip.nights} Nights)
+                    </div>
+                    ${providersHtml}
+                </div>
+            `;
+            
+            card.addEventListener('click', () => {
+                // Track flight in background
+                tripPanel.classList.remove('active');
+                routeSearch.value = trip.route;
+                handleSearch();
+                
+                // Open booking modal with detailed info
+                openBookingModal(trip);
+            });
+            
+            tripInfoContent.appendChild(card);
+        });
+
+    }, 1500); // 1.5s delay
+});
+
+// Booking Modal Logic
+const bookingModal = document.getElementById('bookingModal');
+const closeBookingModalBtn = document.getElementById('closeBookingModal');
+const bookingRoute = document.getElementById('bookingRoute');
+const bookingDuration = document.getElementById('bookingDuration');
+const bookingStats = document.getElementById('bookingStats');
+
+closeBookingModalBtn.addEventListener('click', () => {
+    bookingModal.classList.add('hidden');
+});
+
+function openBookingModal(trip) {
+    bookingRoute.innerText = trip.route;
+    bookingDuration.innerText = trip.duration;
+    
+    let providersHtml = '<div style="margin-top: 16px; font-weight: 600;">Pricing Options:</div>';
+    
+    const parts = trip.route.split(' TO ');
+    const o = parts[0] ? parts[0].trim().toLowerCase() : '';
+    const d = parts[1] ? parts[1].replace(' (EXPRESS)', '').trim().toLowerCase() : '';
+
+    trip.providers.forEach(p => {
+        let url = "#";
+        if(p.name === 'Expedia') url = `https://www.expedia.com/Flights?flight-search-type=RoundTrip&leg1=from:${o},to:${d}`;
+        if(p.name === 'Google Flights') url = `https://www.google.com/flights?hl=en#flt=${o}.${d}`;
+        if(p.name === 'Kayak') url = `https://www.kayak.com/flights/${o}-${d}`;
+        if(p.name === 'Skyscanner') url = `https://www.skyscanner.com/transport/flights/${o}/${d}`;
+
+        providersHtml += `
+            <div class="price-row" style="padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); align-items: center;">
+                <div>
+                    <span>${p.name}</span>
+                    ${p.best ? '<span class="best-deal-badge" style="margin-left: 8px;">Recommended</span>' : ''}
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span style="color: ${p.best ? 'var(--primary-color)' : 'var(--text-main)'}; font-size: 16px; font-weight: bold;">$${p.price.toLocaleString()}</span>
+                    <a href="${url}" target="_blank" onclick="event.stopPropagation();" style="background: ${p.best ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)'}; color: ${p.best ? 'var(--bg-dark)' : 'white'}; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600; display: inline-block;">Select</a>
+                </div>
+            </div>
+        `;
+    });
+
+    bookingStats.innerHTML = `
+        <div class="flight-plan-details">
+            <div class="flight-plan-row"><span>Flight Number</span><span>${trip.flightCode}</span></div>
+            <div class="flight-plan-row"><span>Aircraft</span><span>${trip.aircraft}</span></div>
+            <div class="flight-plan-row"><span>Cabin Class</span><span>${trip.className}</span></div>
+            <div class="flight-plan-row"><span>Hotel Stay</span><span>${trip.nights} Nights</span></div>
+            <div class="flight-plan-row" style="margin-top: 8px; color: var(--primary-color);"><span>Status</span><span>On Time</span></div>
+        </div>
+        ${providersHtml}
+    `;
+    
+    bookingModal.classList.remove('hidden');
 }

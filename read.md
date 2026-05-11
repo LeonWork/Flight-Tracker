@@ -1,1 +1,1 @@
-Test
+When you type in the destination in the search bar, it will plan a trip to that destination. but i want it to show the planes active and shows me a small panel of all of the planes going to that destination. and then when i click on the plane it brings me to the plane and give me the info on the plane like usual, but instead of just showing all the planes flying i also want it to have a lttle panel that shows all the planes that are going to that destination.
