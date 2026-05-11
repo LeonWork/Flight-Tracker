@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AeroTrack 3D - Live Flight Tracker</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- MapLibre GL CSS -->
+    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+    
+    <!-- Application CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- 3D Map Container -->
+        <div id="map"></div>
+
+        <!-- Glassmorphism Header & Search -->
+        <header class="app-header">
+            <div class="logo">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.7l-1.2 3.6c-.1.4.2.9.7 1l6.4 1.7-2.6 2.6-3.3-.8c-.4-.1-.8.2-1 .6L1.5 18c-.2.3 0 .8.4 1l4.4 2.2 2.2 4.4c.2.4.7.6 1 .4l2.4-1.2c.4-.2.7-.6.6-1l-.8-3.3 2.6-2.6 1.7 6.4c.1.5.6.8 1 .7l3.6-1.2c.5-.2.8-.6.7-1.1z"/></svg>
+                <h1>AeroTrack <span>3D</span></h1>
+            </div>
+            <div class="search-container">
+                <input type="text" id="routeSearch" placeholder="Search route (e.g. Calgary to Italy)..." />
+                <button id="searchBtn">Search</button>
+            </div>
+            <div class="toggle-container" style="display: flex; align-items: center; gap: 8px; border-left: 1px solid var(--glass-border); padding-left: 24px; margin-left: 24px;">
+                <label class="switch" style="position: relative; display: inline-block; width: 40px; height: 20px;">
+                    <input type="checkbox" id="liveTrafficToggle" style="opacity: 0; width: 0; height: 0;">
+                    <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .4s; border-radius: 20px; border: 1px solid var(--glass-border);"></span>
+                </label>
+                <span style="font-size: 14px; color: var(--text-muted); font-weight: 600;">Live Traffic</span>
+            </div>
+            <div class="status-indicator">
+                <span class="pulse" id="pulseIndicator" style="background-color: #8b9bb4; box-shadow: none;"></span>
+                <span id="statusText">System Standby</span>
+            </div>
+        </header>
+
+        <!-- Sidebar for Flight Details -->
+        <aside class="flight-panel glass-panel" id="flightPanel">
+            <div class="panel-header">
+                <h2>Flight Details</h2>
+                <button id="closePanel" class="icon-btn">×</button>
+            </div>
+            
+            <div class="flight-info-container" id="flightInfoContent">
+                <div class="placeholder-state">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                    <p>Select a flight on the map to view real-time 3D telemetry and routing data.</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Loading Overlay -->
+        <div id="loading" class="loading-overlay">
+            <div class="spinner"></div>
+            <p>Initializing Airspace...</p>
+        </div>
+    </div>
+
+<style>
+/* Toggle Slider Custom Styles injected inline above, but adding specific state here */
+input:checked + .slider {
+    background-color: var(--primary-color) !important;
+}
+input:checked + .slider:before {
+    transform: translateX(20px);
+}
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+.progress-container {
+    width: 100%;
+    background: rgba(255,255,255,0.05);
+    border-radius: 4px;
+    height: 6px;
+    margin: 12px 0 8px 0;
+    overflow: hidden;
+}
+.progress-bar {
+    height: 100%;
+    background: var(--primary-color);
+    border-radius: 4px;
+    box-shadow: 0 0 8px var(--primary-color);
+}
+.time-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+</style>
+    <!-- MapLibre GL JS -->
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    <!-- Three.js -->
+    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+    <!-- Application Logic -->
+    <script src="app.js?v=4"></script>
+</body>
+</html>
