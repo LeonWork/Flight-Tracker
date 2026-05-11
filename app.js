@@ -1361,7 +1361,8 @@ function openPropertyDetails(trip) {
 }
 
 if(propContinueBtn) {
-    propContinueBtn.addEventListener('click', () => {
+    propContinueBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
         propertyDetailsModal.classList.add('hidden');
         openBookingModal(currentSelectedTrip);
     });
@@ -1443,16 +1444,16 @@ function openBookingModal(trip) {
     bookingModal.classList.remove('hidden');
 }
 
-// Close modals on outside click
+// Close modals on outside click (only when clicking the dark backdrop directly)
 document.querySelectorAll('.modal-overlay').forEach(modal => {
+    // Stop clicks inside the inner panel from reaching the overlay
+    const innerPanel = modal.querySelector('.glass-panel, .booking-container, .explore-container, .package-results-container');
+    if (innerPanel) {
+        innerPanel.addEventListener('click', (e) => e.stopPropagation());
+    }
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             modal.classList.add('hidden');
-            // If they click out of propertyDetailsModal, reset the search entirely as requested
-            if (modal.id === 'propertyDetailsModal') {
-                const prm = document.getElementById('packageResultsModal');
-                if (prm) prm.classList.add('hidden');
-            }
         }
     });
 });
